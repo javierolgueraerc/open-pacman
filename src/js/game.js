@@ -1,6 +1,7 @@
 // game.js
 // Estado y reglas. Depende de globals de maze.js: MAZE, TUNNEL_ROW,
-// PACMAN_START, GHOST_STARTS, GHOST_CORNERS, GHOST_RELEASE.
+// PACMAN_START, GHOST_STARTS, GHOST_CORNERS, GHOST_RELEASE,
+// GHOST_RELEASE_AFTER_DEATH.
 
 const DIRS = {
   left: { x: -1, y: 0 },
@@ -272,7 +273,7 @@ function resetPositions( game ) {
     g.y = start.y;
     g.dir = 'up';
     g.released = start.kind === 'blinky';
-    g.releaseTimer = GHOST_RELEASE[ start.kind ] * 60;
+    g.releaseTimer = GHOST_RELEASE_AFTER_DEATH[ start.kind ] * 60;
   } );
   // El ciclo dispersión/persecución tambien vuelve a empezar.
   game.ghostMode = 'scatter';
