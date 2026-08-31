@@ -57,15 +57,16 @@ function aligned( v ) {
   return Math.abs( v - Math.round( v ) ) < 1e-3;
 }
 
-// Una celda es muro para el actor dado?
-//   pacman: bloqueado por pared (1) y puerta (3)
-//   ghost:  bloqueado solo por pared (1)
+// Una celda es muro para el actor dado? Pared (1) y puerta (3) bloquean a
+// todos: la puerta es unidireccional (solo salida; leavePen la cruza a
+// ciegas sin consultar canMove, asi que la salida no se rompe). El parametro
+// actor se conserva para la futura spec de ojos que regresan a la jaula.
 function isWall( grid, x, y, actor ) {
   if ( y < 0 || y >= grid.length ) return true;
   if ( x < 0 || x >= grid[ 0 ].length ) return true;
   const v = grid[ y ][ x ];
   if ( v === 1 ) return true;
-  if ( v === 3 && actor === 'pacman' ) return true;
+  if ( v === 3 ) return true;
   return false;
 }
 
@@ -239,7 +240,8 @@ function moveGhost( game, g ) {
     g.released = true;
   }
 
-  // Recien liberado (o reentrada por la puerta): salir hasta fila <= 11.
+  // Recien liberado y aun en la pocilga: salir hasta fila <= 11. (Nadie puede
+  // re-entrar: isWall trata la puerta como muro para todos.)
   if ( inPenZone( g ) ) {
     leavePen( g );
     return;
