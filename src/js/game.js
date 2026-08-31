@@ -1,6 +1,6 @@
 // game.js
 // Estado y reglas. Depende de globals de maze.js: MAZE, TUNNEL_ROW,
-// PACMAN_START, GHOST_STARTS, GHOST_RELEASE.
+// PACMAN_START, GHOST_STARTS, GHOST_CORNERS, GHOST_RELEASE.
 
 const DIRS = {
   left: { x: -1, y: 0 },
@@ -117,9 +117,52 @@ function movePacman( game ) {
   wrapTunnel( p, width );
 }
 
+// Objetivo del fantasma segun modo y personalidad. Puede caer fuera del
+// grid: solo se comparan distancias Manhattan, nunca se transita.
+function ghostTarget( game, g ) {
+  const corner = GHOST_CORNERS[ g.kind ];
+
+  // Dispersión: cada fantasma va a su esquina.
+  if ( game.ghostMode === 'scatter' ) return corner;
+
+  const p = game.pacman;
+  const px = Math.round( p.x );
+  const py = Math.round( p.y );
+  const pd = DIRS[ p.dir ];
+
+  if ( g.kind === 'blinky' ) {
+    // Directo a la celda de Pacman.
+    return { x: px, y: py };
+  }
+
+  if ( g.kind === 'pinky' ) {
+    // 4 celdas por delante de Pacman segun su direccion (comportamiento
+    // "correcto": sin el bug original del desplazamiento lateral con 'up').
+    return { x: px + pd.x * 4, y: py + pd.y * 4 };
+  }
+
+  if ( g.kind === 'inky' ) {
+    // Flanqueo: 2 celdas por delante de Pacman; el vector desde Blinky
+    // hasta ese punto se duplica para obtener el objetivo.
+    const ax = px + pd.x * 2;
+    const ay = py + pd.y * 2;
+    const b = game.ghosts.find( ( gh ) => gh.kind === 'blinky' );
+    return { x: ax * 2 - Math.round( b.x ), y: ay * 2 - Math.round( b.y ) };
+  }
+
+  // clyde: persigue solo a mas de 8 celdas (Manhattan) de Pacman;
+  // mas cerca que eso, se retira a su esquina.
+  if ( Math.abs( g.x - px ) + Math.abs( g.y - py ) > 8 ) {
+    return { x: px, y: py };
+  }
+  return corner;
+}
+
+// Elige direccion greedy: la opcion (sin marcha atras) que mas reduce la
+// distancia Manhattan al objetivo. Callejon sin salida: giro de 180.
 function decideGhost( game, g ) {
   const grid = game.grid;
-  const p = game.pacman;
+  const t = ghostTarget( game, g );
 
   const options = Object.keys( DIRS ).filter(
     ( dir ) => dir !== OPPOSITE[ g.dir ] && canMove( grid, g.x, g.y, dir, 'ghost' )
@@ -127,25 +170,19 @@ function decideGhost( game, g ) {
   // Sin salida (callejon): permitir el giro de 180.
   const choices = options.length ? options : [ '' + OPPOSITE[ g.dir ] ];
 
-  if ( g.kind === 'hunter' ) {
-    const px = Math.round( p.x );
-    const py = Math.round( p.y );
-    let best = choices[ 0 ];
-    let bestDist = Infinity;
-    for ( const dir of choices ) {
-      const d = DIRS[ dir ];
-      const nx = g.x + d.x;
-      const ny = g.y + d.y;
-      const dist = Math.abs( nx - px ) + Math.abs( ny - py );
-      if ( dist < bestDist ) {
-        bestDist = dist;
-        best = dir;
-      }
+  let best = choices[ 0 ];
+  let bestDist = Infinity;
+  for ( const dir of choices ) {
+    const d = DIRS[ dir ];
+    const nx = g.x + d.x;
+    const ny = g.y + d.y;
+    const dist = Math.abs( nx - t.x ) + Math.abs( ny - t.y );
+    if ( dist < bestDist ) {
+      bestDist = dist;
+      best = dir;
     }
-    g.dir = best;
-  } else {
-    g.dir = choices[ Math.floor( Math.random() * choices.length ) ];
   }
+  g.dir = best;
 }
 
 // Pocilga: mientras no esta liberado, rebota verticalmente entre las
@@ -162,9 +199,19 @@ function bounceInPen( g ) {
   g.y += d.y * g.speed;
 }
 
-// Recien liberado pero aun dentro de la pen (fila > 11): salir por la
-// puerta apuntando a (13,11) — primero centrarse en la columna 13, luego
-// subir. Salida garantizada por diseño; no hace falta comprobar muros.
+// Zona pocilga: puerta (13-14, fila 12) mas interior (x 11-16, filas 13-15).
+// Las demas celdas de la fila 12 son corredor normal y NO pertenecen a la
+// pen, aunque compartan fila con la puerta.
+function inPenZone( g ) {
+  const x = Math.round( g.x );
+  const y = Math.round( g.y );
+  if ( y === 12 && ( x === 13 || x === 14 ) ) return true;
+  return y >= 13 && y <= 15 && x >= 11 && x <= 16;
+}
+
+// Recien liberado pero aun en la pen: salir por la puerta apuntando a
+// (13,11) — primero centrarse en la columna 13, luego subir. Salida
+// garantizada por diseño; no hace falta comprobar muros.
 function leavePen( g ) {
   if ( aligned( g.x ) && aligned( g.y ) ) {
     g.x = Math.round( g.x );
@@ -192,8 +239,8 @@ function moveGhost( game, g ) {
     g.released = true;
   }
 
-  // Recien liberado: subir por la puerta hasta salir (fila <= 11).
-  if ( g.y > 11 ) {
+  // Recien liberado (o reentrada por la puerta): salir hasta fila <= 11.
+  if ( inPenZone( g ) ) {
     leavePen( g );
     return;
   }
