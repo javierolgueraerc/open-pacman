@@ -148,9 +148,55 @@ function decideGhost( game, g ) {
   }
 }
 
+// Pocilga: mientras no esta liberado, rebota verticalmente entre las
+// filas 13 y 15 del interior de la pen.
+function bounceInPen( g ) {
+  if ( aligned( g.x ) && aligned( g.y ) ) {
+    g.x = Math.round( g.x );
+    g.y = Math.round( g.y );
+    if ( g.dir === 'up' && g.y <= 13 ) g.dir = 'down';
+    else if ( g.dir === 'down' && g.y >= 15 ) g.dir = 'up';
+  }
+  const d = DIRS[ g.dir ];
+  g.x += d.x * g.speed;
+  g.y += d.y * g.speed;
+}
+
+// Recien liberado pero aun dentro de la pen (fila > 11): salir por la
+// puerta apuntando a (13,11) — primero centrarse en la columna 13, luego
+// subir. Salida garantizada por diseño; no hace falta comprobar muros.
+function leavePen( g ) {
+  if ( aligned( g.x ) && aligned( g.y ) ) {
+    g.x = Math.round( g.x );
+    g.y = Math.round( g.y );
+    if ( g.x < 13 ) g.dir = 'right';
+    else if ( g.x > 13 ) g.dir = 'left';
+    else g.dir = 'up';
+  }
+  const d = DIRS[ g.dir ];
+  g.x += d.x * g.speed;
+  g.y += d.y * g.speed;
+}
+
 function moveGhost( game, g ) {
   const grid = game.grid;
   const width = grid[ 0 ].length;
+
+  // Dentro de la pocilga: cuenta atras de liberacion y rebote vertical.
+  if ( !g.released ) {
+    g.releaseTimer--;
+    if ( g.releaseTimer > 0 ) {
+      bounceInPen( g );
+      return;
+    }
+    g.released = true;
+  }
+
+  // Recien liberado: subir por la puerta hasta salir (fila <= 11).
+  if ( g.y > 11 ) {
+    leavePen( g );
+    return;
+  }
 
   if ( aligned( g.x ) && aligned( g.y ) ) {
     g.x = Math.round( g.x );
