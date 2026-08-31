@@ -52,11 +52,25 @@ const MAZE = MAZE_STR.map( ( row ) => row.split( '' ).map( parseTile ) );
 const TUNNEL_ROW = 14;
 const PACMAN_START = { x: 13, y: 23 };
 const GHOST_STARTS = [
-  { x: 13, y: 14, kind: 'hunter' }, // dentro de la pen
-  { x: 14, y: 14, kind: 'random' }, // dentro de la pen
+  { x: 13, y: 11, kind: 'blinky' }, // sobre la puerta, fuera de la pen
+  { x: 13, y: 14, kind: 'pinky' },  // dentro de la pen
+  { x: 11, y: 14, kind: 'inky' },   // dentro de la pen
+  { x: 16, y: 14, kind: 'clyde' },  // dentro de la pen
 ];
+// Esquinas de dispersion por kind. Pueden caer en pared: solo se comparan
+// distancias como objetivo, nunca se transitan.
+const GHOST_CORNERS = {
+  blinky: { x: 26, y: 1 },
+  pinky: { x: 1, y: 1 },
+  inky: { x: 26, y: 29 },
+  clyde: { x: 1, y: 29 },
+};
+// Segundos de espera en la pen antes de salir (blinky nace fuera).
+const GHOST_RELEASE = { blinky: 0, pinky: 3, inky: 6, clyde: 9 };
 
 window.MAZE = MAZE;
 window.TUNNEL_ROW = TUNNEL_ROW;
 window.PACMAN_START = PACMAN_START;
 window.GHOST_STARTS = GHOST_STARTS;
+window.GHOST_CORNERS = GHOST_CORNERS;
+window.GHOST_RELEASE = GHOST_RELEASE;
