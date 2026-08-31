@@ -67,6 +67,10 @@ const GHOST_CORNERS = {
 };
 // Segundos de espera en la pen antes de salir (blinky nace fuera).
 const GHOST_RELEASE = { blinky: 0, pinky: 3, inky: 6, clyde: 9 };
+// Segundos de espera al salir de la pen tras perder una vida: mas cortos que
+// GHOST_RELEASE para que, con muertes frecuentes, los fantasmas vuelvan pronto
+// al mapa sin amontonarse en la puerta.
+const GHOST_RELEASE_AFTER_DEATH = { blinky: 0, pinky: 1, inky: 2, clyde: 3 };
 
 window.MAZE = MAZE;
 window.TUNNEL_ROW = TUNNEL_ROW;
@@ -74,3 +78,4 @@ window.PACMAN_START = PACMAN_START;
 window.GHOST_STARTS = GHOST_STARTS;
 window.GHOST_CORNERS = GHOST_CORNERS;
 window.GHOST_RELEASE = GHOST_RELEASE;
+window.GHOST_RELEASE_AFTER_DEATH = GHOST_RELEASE_AFTER_DEATH;
