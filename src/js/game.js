@@ -1,6 +1,6 @@
 // game.js
 // Estado y reglas. Depende de globals de maze.js: MAZE, TUNNEL_ROW,
-// PACMAN_START, GHOST_STARTS.
+// PACMAN_START, GHOST_STARTS, GHOST_RELEASE.
 
 const DIRS = {
   left: { x: -1, y: 0 },
@@ -12,6 +12,9 @@ const OPPOSITE = { left: 'right', right: 'left', up: 'down', down: 'up' };
 
 const PACMAN_SPEED = 0.125; // 1/8 celda/frame -> alinea cada 8 frames
 const GHOST_SPEED = 0.1;    // 1/10 celda/frame
+
+// Ciclo global dispersión/persecución. 60 frames = 1 segundo (rAF).
+const MODE_FRAMES = { scatter: 7 * 60, chase: 20 * 60 };
 
 // Crea una partida nueva. Copia MAZE (pristino) a game.grid para poder comer
 // dots sin destruir el original, y reiniciar.
@@ -42,7 +45,11 @@ function createGame() {
       dir: 'up',
       speed: GHOST_SPEED,
       kind: g.kind,
+      released: g.kind === 'blinky', // blinky nace fuera de la pen
+      releaseTimer: GHOST_RELEASE[ g.kind ] * 60, // frames
     } ) ),
+    ghostMode: 'scatter',
+    modeTimer: MODE_FRAMES.scatter, // frames restantes de la fase actual
   };
 }
 
@@ -175,7 +182,17 @@ function collides( a, b ) {
   return Math.abs( a.x - b.x ) < 0.5 && Math.abs( a.y - b.y ) < 0.5;
 }
 
+// Avanza el ciclo global: 7 s dispersion, 20 s persecucion, ciclo infinito.
+function updateGhostMode( game ) {
+  game.modeTimer--;
+  if ( game.modeTimer <= 0 ) {
+    game.ghostMode = game.ghostMode === 'scatter' ? 'chase' : 'scatter';
+    game.modeTimer = MODE_FRAMES[ game.ghostMode ];
+  }
+}
+
 function update( game ) {
+  updateGhostMode( game );
   movePacman( game );
   game.ghosts.forEach( ( g ) => moveGhost( game, g ) );
 
