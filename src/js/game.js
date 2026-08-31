@@ -265,10 +265,16 @@ function resetPositions( game ) {
   p.dir = 'left';
   p.nextDir = null;
   game.ghosts.forEach( ( g, i ) => {
-    g.x = GHOST_STARTS[ i ].x;
-    g.y = GHOST_STARTS[ i ].y;
+    const start = GHOST_STARTS[ i ];
+    g.x = start.x;
+    g.y = start.y;
     g.dir = 'up';
+    g.released = start.kind === 'blinky';
+    g.releaseTimer = GHOST_RELEASE[ start.kind ] * 60;
   } );
+  // El ciclo dispersión/persecución tambien vuelve a empezar.
+  game.ghostMode = 'scatter';
+  game.modeTimer = MODE_FRAMES.scatter;
 }
 
 function collides( a, b ) {
